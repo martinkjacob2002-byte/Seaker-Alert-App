@@ -1,0 +1,50 @@
+{
+  "app": {
+    "name": "Seaker Alert App",
+    "version": "1.0.0",
+    "debug": true,
+    "host": "0.0.0.0",
+    "port": 5000
+  },
+  "monitoring": {
+    "refresh_interval": 3000,
+    "max_chart_points": 20,
+    "chart_height": 120
+  },
+  "alerts": {
+    "cpu_usage": {
+      "warning": 70,
+      "critical": 90
+    },
+    "memory_usage": {
+      "warning": 75,
+      "critical": 90
+    },
+    "disk_usage": {
+      "warning": 80,
+      "critical": 95
+    }
+  },
+  "notifications": {
+    "email": {
+      "enabled": false,
+      "smtp_server": "smtp.gmail.com",
+      "smtp_port": 587,
+      "username": "",
+      "password": "",
+      "from_address": "alerts@seaker-app.com",
+      "to_addresses": []
+    },
+    "slack": {
+      "enabled": false,
+      "webhook_url": "",
+      "channel": "#alerts",
+      "username": "Seaker Alert Bot"
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/app.log",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  }
+}

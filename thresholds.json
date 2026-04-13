@@ -1,0 +1,22 @@
+{
+  "cpu_usage": {
+    "warning": 70,
+    "critical": 90
+  },
+  "memory_usage": {
+    "warning": 80,
+    "critical": 95
+  },
+  "disk_usage": {
+    "warning": 85,
+    "critical": 95
+  },
+  "temperature": {
+    "warning": 70,
+    "critical": 85
+  },
+  "swap_usage": {
+    "warning": 50,
+    "critical": 80
+  }
+}
