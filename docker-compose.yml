@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  influxdb:
+    image: influxdb:1.8
+    container_name: seaker-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=seaker_metrics
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_PASSWORD=password123
+      - INFLUXDB_USER=seaker
+      - INFLUXDB_USER_PASSWORD=seaker123
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+      - ./influxdb/init:/docker-entrypoint-initdb.d
+    networks:
+      - seaker-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: seaker-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - seaker-network
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+
+  metrics-collector:
+    build: .
+    container_name: seaker-metrics-collector
+    environment:
+      - INFLUXDB_HOST=influxdb
+      - INFLUXDB_PORT=8086
+      - INFLUXDB_DB=seaker_metrics
+      - INFLUXDB_USER=seaker
+      - INFLUXDB_PASSWORD=seaker123
+      - COLLECTION_INTERVAL=30
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+    networks:
+      - seaker-network
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+
+  alert-engine:
+    build: .
+    container_name: seaker-alert-engine
+    command: python src/alert_engine.py
+    environment:
+      - INFLUXDB_HOST=influxdb
+      - INFLUXDB_PORT=8086
+      - INFLUXDB_DB=seaker_metrics
+      - INFLUXDB_USER=seaker
+      - INFLUXDB_PASSWORD=seaker123
+      - ALERT_CHECK_INTERVAL=60
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+    networks:
+      - seaker-network
+    depends_on:
+      - influxdb
+      - metrics-collector
+    restart: unless-stopped
+
+  web-api:
+    build: .
+    container_name: seaker-web-api
+    command: python src/web_api.py
+    ports:
+      - "5000:5000"
+    environment:
+      - INFLUXDB_HOST=influxdb
+      - INFLUXDB_PORT=8086
+      - INFLUXDB_DB=seaker_metrics
+      - INFLUXDB_USER=seaker
+      - INFLUXDB_PASSWORD=seaker123
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+    networks:
+      - seaker-network
+    depends_on:
+      - influxdb
+      - metrics-collector
+    restart: unless-stopped
+
+volumes:
+  influxdb_data:
+  grafana_data:
+
+networks:
+  seaker-network:
+    driver: bridge
