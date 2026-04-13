@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seaker Alert App Dashboard</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Seaker Alert App</h1>
+            <div class="status-container">
+                <span class="status status-online" id="status"></span>
+                <span id="statusText">Loading...</span>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div>Loading system metrics...</div>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="error" style="display: none;">
+            <div>Error loading metrics. Please try again.</div>
+        </div>
+
+        <!-- Main Dashboard -->
+        <main id="dashboard" style="display: none;">
+            <!-- Metrics Section -->
+            <section class="metrics-section">
+                <div class="metrics-container">
+                    <div class="metric-box">
+                        <div class="metric-title">CPU Cores</div>
+                        <div class="metric-value" id="cpuCores">--</div>
+                        <div class="metric-unit">cores</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">CPU Usage</div>
+                        <div class="metric-value" id="cpuUsage">--</div>
+                        <div class="metric-unit">percent</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-green" id="cpuBar" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-percent" id="cpuPercent">0%</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">Memory</div>
+                        <div class="metric-value" id="memoryValue">--</div>
+                        <div class="metric-unit">GB / GB</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">Memory Usage</div>
+                        <div class="metric-value" id="memoryUsage">--</div>
+                        <div class="metric-unit">percent</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-green" id="memoryBar" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-percent" id="memoryPercent">0%</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">Disk</div>
+                        <div class="metric-value" id="diskValue">--</div>
+                        <div class="metric-unit">GB / GB</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">Disk Usage</div>
+                        <div class="metric-value" id="diskUsage">--</div>
+                        <div class="metric-unit">percent</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-green" id="diskBar" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-percent" id="diskPercent">0%</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">Uptime</div>
+                        <div class="metric-value" id="uptime">--</div>
+                        <div class="metric-unit">hours</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">Processes</div>
+                        <div class="metric-value" id="processes">--</div>
+                        <div class="metric-unit">count</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main Chart Section -->
+            <section class="main-chart-section">
+                <div class="main-chart">
+                    <div class="chart-title">System Metrics History</div>
+                    <canvas id="metricsChart" style="height: 120px;"></canvas>
+                </div>
+            </section>
+
+            <!-- Controls Section -->
+            <section class="controls-section">
+                <div class="controls">
+                    <button class="btn" onclick="testAlert()">Test Alert</button>
+                    <button class="btn" onclick="exportJSON()">Export JSON</button>
+                    <button class="btn" onclick="exportCSV()">Export CSV</button>
+                </div>
+                <div class="refresh-status">
+                    <span id="refreshStatus">Ready</span>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="timestamp" id="timestamp">Last updated: --</div>
+            <div class="footer-info">
+                Seaker Alert App | System Monitoring Dashboard
+            </div>
+        </footer>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

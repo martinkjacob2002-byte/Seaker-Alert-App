@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seaker Alert App Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Seaker Alert App</h1>
+            <div class="status-container">
+                <span class="status status-online" id="status"></span>
+                <span id="statusText">Loading...</span>
+            </div>
+        </header>
+
+        <div id="loading" class="loading">
+            <div>Loading system metrics...</div>
+        </div>
+
+        <main id="dashboard" style="display: none;">
+            <section class="metrics-section">
+                <div class="metrics-container">
+                    <div class="metric-box">
+                        <div class="metric-title">CPU Usage</div>
+                        <div class="metric-value" id="cpuUsage">--</div>
+                        <div class="metric-unit">percent</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-green" id="cpuBar" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-percent" id="cpuPercent">0%</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">Memory</div>
+                        <div class="metric-value" id="memoryValue">--</div>
+                        <div class="metric-unit">GB / GB</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">Memory Usage</div>
+                        <div class="metric-value" id="memoryUsage">--</div>
+                        <div class="metric-unit">percent</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-green" id="memoryBar" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-percent" id="memoryPercent">0%</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">Disk</div>
+                        <div class="metric-value" id="diskValue">--</div>
+                        <div class="metric-unit">GB / GB</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">Disk Usage</div>
+                        <div class="metric-value" id="diskUsage">--</div>
+                        <div class="metric-unit">percent</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-green" id="diskBar" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-percent" id="diskPercent">0%</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">Uptime</div>
+                        <div class="metric-value" id="uptime">--</div>
+                        <div class="metric-unit">hours</div>
+                    </div>
+                    
+                    <div class="metric-box">
+                        <div class="metric-title">Temperature</div>
+                        <div class="metric-value" id="temperature">--</div>
+                        <div class="metric-unit">°C</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="main-chart-section">
+                <div class="main-chart">
+                    <div class="chart-title">System Metrics History</div>
+                    <canvas id="metricsChart" style="height: 120px;"></canvas>
+                </div>
+            </section>
+
+            <section class="controls-section">
+                <div class="controls">
+                    <button class="btn" onclick="testAlert()">Test Alert</button>
+                    <button class="btn" onclick="exportJSON()">Export JSON</button>
+                    <button class="btn" onclick="exportCSV()">Export CSV</button>
+                </div>
+                <div class="refresh-status">
+                    <span id="refreshStatus">Ready</span>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="timestamp" id="timestamp">Last updated: --</div>
+        </footer>
+    </div>
+
+    <script>
+        // Simple version without complex features
+        let metricsChart;
+        let chartData = {
+            labels: [],
+            cpu: [],
+            memory: [],
+            disk: []
+        };
+
+        function initChart() {
+            const ctx = document.getElementById('metricsChart');
+            if (!ctx) {
+                console.error('Chart canvas not found');
+                return;
+            }
+
+            metricsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: 'CPU',
+                            data: chartData.cpu,
+                            borderColor: '#F44336',
+                            backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Memory',
+                            data: chartData.memory,
+                            borderColor: '#2196F3',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Disk',
+                            data: chartData.disk,
+                            borderColor: '#4CAF50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateMetrics() {
+            console.log('Updating metrics...');
+            document.getElementById('refreshStatus').textContent = 'Updating...';
+            
+            fetch('/metrics')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('HTTP error! status: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Received data:', data);
+                    updateUI(data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('refreshStatus').textContent = 'Error: ' + error.message;
+                });
+        }
+
+        function updateUI(data) {
+            // Update metric boxes
+            document.getElementById('cpuUsage').textContent = (data.cpu_usage_percent || 0).toFixed(1);
+            document.getElementById('memoryValue').textContent = `${(data.memory_used_gb || 0).toFixed(1)} / ${(data.memory_total_gb || 0).toFixed(1)}`;
+            document.getElementById('memoryUsage').textContent = (data.memory_usage_percent || 0).toFixed(1);
+            document.getElementById('diskValue').textContent = `${(data.disk_used_gb || 0).toFixed(1)} / ${(data.disk_total_gb || 0).toFixed(1)}`;
+            document.getElementById('diskUsage').textContent = (data.disk_usage_percent || 0).toFixed(1);
+            
+            // Update uptime
+            document.getElementById('uptime').textContent = (data.uptime_hours || 0).toFixed(1);
+            
+            // Update temperature
+            const temperature = data.temperature;
+            if (temperature && Object.keys(temperature).length > 0) {
+                const firstTemp = Object.values(temperature)[0];
+                document.getElementById('temperature').textContent = firstTemp.toFixed(1);
+            } else {
+                document.getElementById('temperature').textContent = 'N/A';
+            }
+            
+            // Update progress bars
+            updateProgressBar('cpuBar', data.cpu_usage_percent || 0);
+            updateProgressBar('memoryBar', data.memory_usage_percent || 0);
+            updateProgressBar('diskBar', data.disk_usage_percent || 0);
+            
+            document.getElementById('cpuPercent').textContent = (data.cpu_usage_percent || 0).toFixed(1) + '%';
+            document.getElementById('memoryPercent').textContent = (data.memory_usage_percent || 0).toFixed(1) + '%';
+            document.getElementById('diskPercent').textContent = (data.disk_usage_percent || 0).toFixed(1) + '%';
+            
+            // Update chart
+            const now = new Date();
+            const timeLabel = now.toLocaleTimeString();
+            
+            if (chartData.labels.length > 20) {
+                chartData.labels.shift();
+                chartData.cpu.shift();
+                chartData.memory.shift();
+                chartData.disk.shift();
+            }
+            
+            chartData.labels.push(timeLabel);
+            chartData.cpu.push(data.cpu_usage_percent || 0);
+            chartData.memory.push(data.memory_usage_percent || 0);
+            chartData.disk.push(data.disk_usage_percent || 0);
+            
+            if (metricsChart) {
+                metricsChart.update();
+            }
+            
+            // Update status
+            document.getElementById('status').className = 'status status-online';
+            document.getElementById('statusText').textContent = 'System Online';
+            
+            // Update timestamp
+            document.getElementById('timestamp').textContent = 'Last updated: ' + now.toLocaleString();
+            
+            // Hide loading and show dashboard
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            
+            document.getElementById('refreshStatus').textContent = 'Updated successfully';
+        }
+
+        function updateProgressBar(barId, value) {
+            const bar = document.getElementById(barId);
+            if (bar) {
+                bar.style.width = value + '%';
+                bar.className = 'progress-fill';
+                if (value >= 90) {
+                    bar.classList.add('progress-red');
+                } else if (value >= 70) {
+                    bar.classList.add('progress-yellow');
+                } else {
+                    bar.classList.add('progress-green');
+                }
+            }
+        }
+
+        
+        function testAlert() {
+            alert('Test alert functionality');
+        }
+
+        function exportJSON() {
+            fetch('/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    const jsonStr = JSON.stringify(data, null, 2);
+                    const blob = new Blob([jsonStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'system_metrics_' + new Date().toISOString().slice(0, 10) + '.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error('Error exporting JSON:', error);
+                    alert('Error exporting data');
+                });
+        }
+
+        function exportCSV() {
+            fetch('/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    let csv = 'Metric,Value,Unit\n';
+                    csv += `CPU Usage,${(data.cpu_usage_percent || 0).toFixed(1)},%\n`;
+                    csv += `Memory Used,${(data.memory_used_gb || 0).toFixed(2)},GB\n`;
+                    csv += `Memory Total,${(data.memory_total_gb || 0).toFixed(2)},GB\n`;
+                    csv += `Memory Usage,${(data.memory_usage_percent || 0).toFixed(1)},%\n`;
+                    csv += `Disk Used,${(data.disk_used_gb || 0).toFixed(2)},GB\n`;
+                    csv += `Disk Total,${(data.disk_total_gb || 0).toFixed(2)},GB\n`;
+                    csv += `Disk Usage,${(data.disk_usage_percent || 0).toFixed(1)},%\n`;
+                    csv += `Uptime,${(data.uptime_hours || 0).toFixed(1)},hours\n`;
+                    csv += `Process Count,${data.process_count || 0},count\n`;
+                    
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'system_metrics_' + new Date().toISOString().slice(0, 10) + '.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error('Error exporting CSV:', error);
+                    alert('Error exporting data');
+                });
+        }
+
+        // Auto-refresh functionality
+        let refreshInterval;
+        let secondsUntilRefresh = 3;
+        let countdownInterval;
+
+        function startAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            refreshInterval = setInterval(updateMetrics, 3000); // 3 seconds
+            startCountdown();
+        }
+
+        function startCountdown() {
+            secondsUntilRefresh = 3;
+            countdownInterval = setInterval(() => {
+                secondsUntilRefresh--;
+                updateRefreshStatus();
+                if (secondsUntilRefresh <= 0) {
+                    secondsUntilRefresh = 3;
+                }
+            }, 1000);
+        }
+
+        function updateRefreshStatus() {
+            document.getElementById('refreshStatus').textContent = 'Next refresh in ' + secondsUntilRefresh + 's';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing...');
+            try {
+                initChart();
+                updateMetrics();
+                startAutoRefresh();
+                console.log('Initialization complete');
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('statusText').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+        });
+    </script>
+</body>
+</html>
